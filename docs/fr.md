@@ -56,7 +56,7 @@ maison (présence), être prévenu quand un serveur ne répond plus.
 | **Intervalle des tests**               | 30 s      | Fréquence à laquelle chaque hôte est testé (de 15 s à 5 min).                                                       |
 | **Hors ligne après**                   | 1 minute  | Durée sans aucune réponse avant qu'un hôte passe hors ligne. « Au premier test sans réponse » réagit tout de suite. |
 | **Délai de réveil**                    | 3 minutes | Durée laissée à un appareil réveillé pour répondre avant **Un appareil ne s'est pas allumé**.                       |
-| **Langue des noms de fonctionnalités** | Anglais   | Noms des fonctionnalités des nouveaux appareils (En ligne, Latence, Allumer) et langue des messages.                |
+| **Langue des noms de fonctionnalités** | Français  | Noms des fonctionnalités des nouveaux appareils (En ligne, Latence, Allumer) et langue des messages.                |
 
 ### Ajouter un hôte
 
@@ -126,6 +126,8 @@ Jusqu'à quatre boutons **Allumer** apparaissent pour les hôtes hors ligne qui 
 (bouton, widget ou scène) ne répond toujours pas à la fin du **Délai de réveil**. Le filtre
 **Appareil** est facultatif. Variables : **Nom de l'appareil**, **Adresse**, **Secondes
 d'attente**.
+
+**Attention aux boucles** : une scène qui réveille de nouveau l'appareil sur ce déclencheur recommence à chaque échec, toutes les quelques minutes, sans fin (un ordinateur débranché du secteur ne répondra jamais). Envoyez plutôt un message, ou arrêtez-vous après un seul nouvel essai par une condition de votre choix.
 
 Pour « l'appareil est allumé / éteint », utilisez le déclencheur du cœur **Changement d'état de
 l'appareil** sur la fonctionnalité **En ligne**, et cochez **Exécuter seulement lorsque le seuil

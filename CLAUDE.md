@@ -237,7 +237,12 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store publie
   « socket: Operation not permitted ». Avec `-w`, iputils envoie jusqu'à obtenir `-c` réponses
   (15 paquets en 3 s vers un hôte muet) : ne pas le mettre. Vérifié hors Docker avec les binaires
   Alpine lancés par le chargeur musl, et le refus reproduit dans un espace de noms réseau
-  (`unshare -U -r -n` + `setpriv`) ; **jamais vérifié dans un vrai conteneur Gladys**.
+  (`unshare -U -r -n` + `setpriv`). **Vérifié le 12/10/2026 dans le conteneur verrouillé** (Docker
+  28.1.1, `--cap-drop ALL --security-opt no-new-privileges --read-only --memory 256m`, réseau en
+  pont) : `ping_group_range` = `0 2147483647`, ICMP vers la passerelle et vers 1.1.1.1 OK sous
+  l'uid 1000 ; avec `--sysctl net.ipv4.ping_group_range="1 0"`, refus en code 2 et repli TCP OK
+  (connexion acceptée et RST). Image au repos : ~18 Mo ; sans Gladys, le SDK réessaie avec un délai
+  croissant, sans planter ni écrire le jeton ; `docker stop` → SIGTERM, sortie 0 en 1 s.
 - **Wake-on-LAN** : `gladys.wakeOnLan` → `POST /network/wake`, 1 envoi / 2 s **par intégration**
   (429 sinon) : file d'attente espacée de 2,1 s dans `monitor.sendMagicPacket`. Le faux Gladys du SDK
   l'enregistre seulement (`fake.requests`, chemin `/network/wake`).

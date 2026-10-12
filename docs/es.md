@@ -56,7 +56,7 @@ recibir un aviso cuando un servidor deja de responder.
 | **Intervalo de comprobación**              | 30 s        | Con qué frecuencia se comprueba cada equipo (de 15 s a 5 min).                                                                          |
 | **Sin conexión tras**                      | 1 minuto    | Tiempo sin ninguna respuesta antes de mostrar un equipo sin conexión. «En la primera comprobación sin respuesta» reacciona al instante. |
 | **Tiempo máximo de encendido**             | 3 minutos   | Tiempo que tiene un dispositivo despertado para responder antes de **Un dispositivo no se ha encendido**.                               |
-| **Idioma de los nombres de las funciones** | Inglés      | Nombres de las funciones de los nuevos dispositivos (En línea, Latencia, Encender) e idioma de los mensajes.                            |
+| **Idioma de los nombres de las funciones** | Francés     | Nombres de las funciones de los nuevos dispositivos (En línea, Latencia, Encender) e idioma de los mensajes.                            |
 
 ### Añadir un equipo
 
@@ -126,6 +126,8 @@ cuatro botones **Encender** para los equipos sin conexión que tienen dirección
 integración (botón, widget o escena) sigue sin responder al final del **Tiempo máximo de
 encendido**. El filtro **Dispositivo** es opcional. Variables: **Nombre del dispositivo**,
 **Dirección**, **Segundos de espera**.
+
+**Cuidado con los bucles**: una escena que vuelve a despertar el dispositivo con este activador empieza de nuevo en cada fallo, cada pocos minutos, sin fin (un ordenador desenchufado nunca responderá). Envíe mejor un mensaje, o deténgase tras un único nuevo intento con una condición propia.
 
 Para «el dispositivo está encendido / apagado», use el activador del núcleo **Cambio de estado del
 dispositivo** sobre la función **En línea** y marque **Ejecutar solo cuando se supere el umbral**:

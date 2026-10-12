@@ -269,7 +269,7 @@
         "es": "Nombres de las funciones de los nuevos dispositivos (En línea, Latencia, Encender) e idioma de los mensajes."
       },
       "required": false,
-      "default": "en",
+      "default": "fr",
       "options": [
         {
           "value": "en",

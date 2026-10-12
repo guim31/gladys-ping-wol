@@ -70,7 +70,7 @@ test('wake_device on a device of another integration fails', async (t) => {
   const w = await world(t, {});
   const ack = await w.fake.sceneAction('wake_device', { device: 'ext:other:light:1' });
   assert.equal(ack.success, false);
-  assert.match(ack.error, /not a host/);
+  assert.match(ack.error, /n'est pas un hôte/);
 });
 
 test('check_address: 1 with the latency, or 0', async (t) => {

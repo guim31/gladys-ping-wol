@@ -36,4 +36,6 @@ the notes of the version's GitHub Release.
   checks any address without creating a device.
 - Dashboard widget **Network devices**: several hosts at a glance (online with
   latency, offline, starting) and a **Wake** button for the offline ones.
-- Texts and documentation in English, French, German and Spanish.
+- Texts and documentation in English, French, German and Spanish; feature
+  names in French by default (setting **Language of the feature names**).
+- Apache-2.0 `LICENSE` file.

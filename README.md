@@ -136,4 +136,4 @@ standard (AMD/IBM, 1995).
 
 ## License
 
-Apache-2.0 (as declared in `package.json`).
+Apache-2.0, see [LICENSE](LICENSE).

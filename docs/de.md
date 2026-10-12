@@ -49,12 +49,12 @@ dem Dashboard sehen, dass die Konsole der Kinder noch läuft, wissen, dass ein H
 
 ### Einstellungen
 
-| Einstellung                    | Standard  | Wirkung                                                                                                         |
-| ------------------------------ | --------- | --------------------------------------------------------------------------------------------------------------- |
-| **Prüfintervall**              | 30 s      | Wie oft jeder Host geprüft wird (15 s bis 5 min).                                                               |
-| **Offline nach**               | 1 Minute  | Zeit ohne jede Antwort, bevor ein Host als offline gilt. „Bei der ersten Prüfung ohne Antwort“ reagiert sofort. |
-| **Weck-Zeitlimit**             | 3 Minuten | Zeit, die ein geweckter Host zum Antworten hat, bevor **Ein Gerät ist nicht aufgewacht** auslöst.               |
-| **Sprache der Funktionsnamen** | Englisch  | Namen der Funktionen neuer Geräte (Online, Latenz, Aufwecken) und Sprache der Meldungen.                        |
+| Einstellung                    | Standard    | Wirkung                                                                                                         |
+| ------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------- |
+| **Prüfintervall**              | 30 s        | Wie oft jeder Host geprüft wird (15 s bis 5 min).                                                               |
+| **Offline nach**               | 1 Minute    | Zeit ohne jede Antwort, bevor ein Host als offline gilt. „Bei der ersten Prüfung ohne Antwort“ reagiert sofort. |
+| **Weck-Zeitlimit**             | 3 Minuten   | Zeit, die ein geweckter Host zum Antworten hat, bevor **Ein Gerät ist nicht aufgewacht** auslöst.               |
+| **Sprache der Funktionsnamen** | Französisch | Namen der Funktionen neuer Geräte (Online, Latenz, Aufwecken) und Sprache der Meldungen.                        |
 
 ### Einen Host hinzufügen
 
@@ -124,6 +124,8 @@ Schaltflächen **Wecken** erscheinen für die Hosts, die offline sind und eine M
 **Ein Gerät ist nicht aufgewacht** löst aus, wenn ein von der Integration geweckter Host
 (Schaltfläche, Widget oder Szene) am Ende des **Weck-Zeitlimits** immer noch nicht antwortet. Der
 Filter **Gerät** ist optional. Variablen: **Gerätename**, **Adresse**, **Gewartete Sekunden**.
+
+**Vorsicht vor Schleifen**: Eine Szene, die das Gerät bei diesem Auslöser erneut weckt, beginnt bei jedem Fehlschlag von vorn, alle paar Minuten, ohne Ende (ein vom Strom getrennter Rechner antwortet nie). Sende lieber eine Nachricht, oder hör nach einem einzigen weiteren Versuch mit einer eigenen Bedingung auf.
 
 Für „das Gerät ist an / aus“ nimm den Kern-Auslöser **Änderung von Gerätestatus** auf der Funktion
 **Online** und hake **Nur ausführen, wenn der Schwellenwert überschritten wird** an: Der Zustand

@@ -54,7 +54,7 @@ server stops answering.
 | **Check interval**                | 30 s      | How often every host is checked (15 s to 5 min).                                                    |
 | **Offline after**                 | 1 minute  | Time without any answer before a host is shown offline. "At the first failed check" reacts at once. |
 | **Wake-up timeout**               | 3 minutes | Time a woken device has to answer before **A device did not wake up** fires.                        |
-| **Language of the feature names** | English   | Names of the features of new devices (Online, Latency, Wake up) and language of the messages.       |
+| **Language of the feature names** | French    | Names of the features of new devices (Online, Latency, Wake up) and language of the messages.       |
 
 ### Adding a host
 
@@ -121,6 +121,8 @@ offline hosts that have a MAC address.
 **A device did not wake up** fires when a device woken by the integration (button, widget or
 scene) still does not answer at the end of the **Wake-up timeout**. The **Device** filter is
 optional. Variables: **Device name**, **Address**, **Seconds waited**.
+
+**Beware of loops**: a scene that wakes the device again on this trigger starts over at every failure, every few minutes, with no end (a computer unplugged from the mains will never answer). Send a message instead, or stop after one retry with a condition of your own.
 
 For "the device is on / off", use the core trigger **Device state change** on the **Online**
 feature, and tick **Execute only when threshold is passed**: the state is sent again every

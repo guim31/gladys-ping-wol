@@ -25,7 +25,7 @@ export const DEFAULT_CONFIG = {
   check_interval: '30',
   offline_after: '60',
   wake_timeout: '180',
-  language: 'en',
+  language: 'fr',
 };
 
 const pick = (value, allowed, fallback) =>
