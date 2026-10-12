@@ -1,33 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG, normalizeConfig } from '../src/config.js';
 
-test('normalizeConfig returns the defaults when called with no argument', () => {
-  assert.deepEqual(normalizeConfig(), DEFAULT_CONFIG);
+test('the defaults apply to an empty or broken configuration', () => {
+  const expected = { checkInterval: 30, offlineAfter: 60, wakeTimeout: 180, language: 'fr' };
+  assert.deepEqual(normalizeConfig(), expected);
+  assert.deepEqual(normalizeConfig(null), expected);
+  assert.deepEqual(
+    normalizeConfig({ check_interval: '7', offline_after: 'x', language: 'it' }),
+    expected,
+  );
+  assert.deepEqual(normalizeConfig(DEFAULT_CONFIG), expected);
 });
 
-test('normalizeConfig keeps user values over the defaults', () => {
-  const config = normalizeConfig({ latitude: 45.5, longitude: -73.6, unit: 'fahrenheit' });
-  assert.equal(config.latitude, 45.5);
-  assert.equal(config.longitude, -73.6);
-  assert.equal(config.unit, 'fahrenheit');
-});
-
-test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ latitude: '48.8', longitude: '2.3', poll_frequency: '600' });
-  assert.equal(config.latitude, 48.8);
-  assert.equal(config.longitude, 2.3);
-  assert.equal(config.poll_frequency, 600);
-  assert.equal(typeof config.poll_frequency, 'number');
-});
-
-test('normalizeConfig falls back to the default for a missing numeric field', () => {
-  const config = normalizeConfig({ unit: 'celsius' });
-  assert.equal(config.poll_frequency, DEFAULT_CONFIG.poll_frequency);
-});
-
-test('GLADYS_PREFER_LOCAL defaults to true and only an explicit false disables it', () => {
-  assert.equal(normalizeConfig().GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: true }).GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: false }).GLADYS_PREFER_LOCAL, false);
+test('the select values become numbers of seconds', () => {
+  assert.deepEqual(
+    normalizeConfig({
+      check_interval: '300',
+      offline_after: '0',
+      wake_timeout: '600',
+      language: 'de',
+    }),
+    { checkInterval: 300, offlineAfter: 0, wakeTimeout: 600, language: 'de' },
+  );
+  // A number stored by an older form is accepted too.
+  assert.equal(normalizeConfig({ check_interval: 15 }).checkInterval, 15);
 });

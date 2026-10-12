@@ -12,44 +12,30 @@ the notes of the version's GitHub Release.
 
 ### Added
 
-- A working example of scene triggers, scene actions and dashboard widgets
-  (Gladys 5.1.0 or later).
-- `CHANGELOG.md`, rolled by the Release workflow.
-- A GitHub Release for every version, with its changelog section as notes: the
-  Gladys Supervision page links each version to the repository's releases.
-- CI runs the tests on Node 22 and 24, and builds the Docker image.
-- Dependabot keeps the npm dependencies and the GitHub Actions up to date.
-- `SECURITY.md` (how to report a vulnerability) and `CLAUDE.md` (project rules
-  for contributors and coding assistants).
-- Manifest tests: `version` matches `package.json`, `docker_image` is tagged
-  with it, descriptions hold 10 to 100 characters, placeholders are
-  multi-language objects.
-- The latitude and longitude fields show an example value as placeholder.
-
-### Changed
-
-- Node.js 22 or later is required (Node 20 is end-of-life).
-- Integration SDK 0.15.0. The tests now run against the fake Gladys of the
-  SDK, which refuses the payloads Gladys refuses.
-- The refresh interval is one minute minimum, the fastest Gladys polls a
-  device. The plug's power is only sent when it changes, and every 30
-  minutes otherwise.
-
-### Fixed
-
-- Gladys refused the devices of the Discovery tab: the weather station and
-  the plug declared their poll frequency in seconds instead of one of the
-  values Gladys accepts, and were never polled. They now poll every minute,
-  and the readings follow the refresh interval of the configuration.
-
-- The release commit no longer fails `npm run format:check`: the Release
-  workflow updates the manifest `version` and `docker_image` in place instead
-  of re-printing the whole file with `jq`.
-- The integration can write to `/data`: the image creates the directory owned
-  by the `node` user, a new Docker volume was owned by root.
-- A sub-container running the integration's own image follows it to the new
-  tag at each release, as well as in the manifest of the build summary: it kept
-  the previous tag, which may not exist on the registry. Sub-containers on a
-  third-party image (a broker, a database...) keep theirs.
-
-[Unreleased]: https://github.com/GladysAssistant/integration-template-js/commits/main
+- One Gladys device per watched host (computer, NAS, TV, phone, server):
+  **Online** (presence sensor, usable in scene conditions) and **Latency** (in
+  milliseconds, with history), plus a **Wake up** button when the MAC address
+  is known (Wake-on-LAN, sent by the Gladys core).
+- Hosts added from the Configuration screen (**Add or update a host**,
+  **Remove a host**), kept across restarts and updates.
+- Checks by ping (ICMP), with a TCP fallback for the hosts that ignore pings
+  (a refused connection counts as an answer too): automatic, ping only or TCP
+  port only, per host.
+- Adjustable check interval (15 s to 5 min) and delay before a host is shown
+  offline, globally and per host, so that phones asleep on Wi-Fi do not
+  flicker.
+- **Search the network**: devices that announce themselves over UPnP (TVs, NAS,
+  media servers, routers…) are proposed in the Discover tab, with their MAC
+  address when Gladys knows it.
+- After a wake-up, the device is checked every 5 seconds and the packet sent
+  again every 30 seconds until it answers or the wake-up timeout ends.
+- Scene trigger **A device did not wake up**, with the device name, its
+  address and the time waited.
+- Scene actions **Wake a device (Wake-on-LAN)**, which can wait until the
+  device answers (start-up time as a result), and **Check an address**, which
+  checks any address without creating a device.
+- Dashboard widget **Network devices**: several hosts at a glance (online with
+  latency, offline, starting) and a **Wake** button for the offline ones.
+- Texts and documentation in English, French, German and Spanish; feature
+  names in French by default (setting **Language of the feature names**).
+- Apache-2.0 `LICENSE` file.

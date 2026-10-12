@@ -11,7 +11,11 @@
 FROM public.ecr.aws/docker/library/node:24-alpine
 
 # dumb-init: handles signals (SIGTERM) correctly for a graceful shutdown.
-RUN apk add --no-cache dumb-init
+# iputils-ping: the ICMP probe. The container has no capability at all (no raw
+# socket): iputils falls back on the unprivileged ICMP datagram sockets Docker
+# opens to containers (net.ipv4.ping_group_range), and its exit codes tell a
+# silent host (1) from a refused socket (2). Node has no ICMP socket of its own.
+RUN apk add --no-cache dumb-init iputils-ping
 
 WORKDIR /app
 

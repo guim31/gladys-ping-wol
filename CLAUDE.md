@@ -16,12 +16,12 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/monitor.test.js          # one file
+node --test --test-name-pattern "wake"    # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
-npx github:GladysAssistant/integration-store .   # store admission checks
+npx github:GladysAssistant/integration-store --skip-image-check .   # store admission checks
 ```
 
 The CI (`.github/workflows/ci.yml`) runs `format:check`, `lint` and `test` on
@@ -31,16 +31,22 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only: registerHandlers() then connect()
+src/app.js                        every SDK handler -> monitor; configuration actions
+src/monitor.js                    hosts, check cycles, states, Wake-on-LAN, network search, wake_failed
+src/probe.js                      ping (iputils, spawned) and TCP checks; injectable for the tests
+src/hosts.js                      validation of the "Add a host" fields, MAC/address normalization, ids
+src/devices.js                    the Gladys device of a host (features, names in 4 languages)
+src/discovery.js                  SSDP answers relayed by the core, UPnP descriptions
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
 src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/messages.js                   texts sent from the container (en, fr, de, es)
+src/store.js                      /data/hosts.json (atomic, coalesced writes)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+gladys-assistant-integration.json manifest: name, config_schema, actions, scenes, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/helpers/world.js             fake Gladys + simulated network + manual clock + temporary /data
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +76,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, widget texts, feature names, and
+  `docs/{en,fr,de,es}.md`, kept in sync (`test/i18n.test.js` checks it).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -155,6 +162,8 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - **Cibler la dernière version publiée du cœur, pas `master`** : la spec de `master` décrit des
   fonctions non publiées. Les boutons de widget qui ouvrent un formulaire (#3168, commit 3feb2cf8)
   sont absents de la 5.1.4 : le bouton s'affiche et n'envoie rien. Vérifier par `git tag --contains`.
+  La dernière version publiée est **5.2.0** (12/10/2026) : elle contient ces formulaires
+  (`WIDGET_ACTION_FIELD_TYPES`), mais s'en servir impose `gladys_version` `>=5.2.0`.
 
 - Un réglage de widget ne propose en liste que les **appareils** de l'intégration
   (`source: "devices"`, seule source dynamique).
@@ -200,5 +209,49 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 Tout texte montré à l'utilisateur existe en **`en`, `fr`, `de` et `es`** : manifeste, contenu des widgets, messages,
 noms de fonctionnalités. L'allemand **tutoie** (« du »), l'espagnol **vouvoie** (« usted ») : décision de Guilhem,
 appliquée à ses 21 intégrations. `test/i18n.test.js` doit échouer sur une langue manquante, un texte vide ou trop
-long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store ne publie que `docs/en.md` et `docs/fr.md`
-(`DOCS_LANGUAGES` d'integration-store) : pas de doc de/es.
+long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store publie `docs/en.md` et `docs/fr.md` (obligatoires,
+`DOCS_LANGUAGES` d'integration-store) **et aussi `docs/de.md` et `docs/es.md` quand ils existent**
+(`DOCS_OPTIONAL_LANGUAGES`) : les quatre docs sont écrites, avec les mêmes sections (vérifié par `test/i18n.test.js`).
+
+## Pièges découverts sur cette intégration (Gladys 5.2.0, SDK 0.15.0)
+
+- **Sorties d'action de scène : des nombres, pas des booléens.** « Condition sur variables »
+  (`condition.only-continue-if`) compare avec `===`, et son champ valeur ne produit qu'un nombre ou
+  une chaîne (`Condition.jsx`) : une sortie `boolean` ne peut jamais valoir `true` en face. D'où
+  `online`/`reachable` en 1/0 (`test/manifest.test.js` le fige).
+- **`presence-sensor/binary`** : pastille « Présence détectée / Pas de présence » (vert/rouge) dans
+  le tableau de bord, et déclencheur « Changement d'état » binaire **avec** la case « Exécuter
+  seulement lorsque le seuil est passé », **non cochée par défaut** : sans elle, chaque état
+  republié identique relance la scène. Le battement de 12 h (`publishChangedStates` `heartbeat`)
+  est donc documenté avec cette case. (`presence-sensor/push`, lui, force `threshold_only: false`.)
+- **« Pas de valeur récente »** : le front l'affiche sur toute valeur de plus de 48 h
+  (`DEVICE_STATE_NUMBER_OF_HOURS_BEFORE_STATE_IS_OUTDATED`, réglable), sauf catégories `button`,
+  `text`, fumée, fuite. Tout `saveState` met à jour `last_value_changed`, même valeur identique.
+- **`button/push`** : bouton « Appuyer » qui envoie 1 (`PushDeviceFeature.jsx`) ; `button/click`
+  s'affiche en capteur. Le libellé de type de `button/push` en allemand est « Schieben » (traduction
+  du cœur, à citer telle quelle).
+- **Onglet de découverte** : « Discover » en anglais (pas « Discovery »), « Découverte »,
+  « Entdecken », « Descubrir » ; bouton « Add to Gladys » / « Ajouter à Gladys ».
+- **Ping dans le conteneur** : `CapDrop: ALL`, pas de socket brut. `iputils-ping` d'Alpine 3.24
+  (setuid, sans capacité de fichier) passe par les sockets ICMP datagramme ; refus → code 2 et
+  « socket: Operation not permitted ». Avec `-w`, iputils envoie jusqu'à obtenir `-c` réponses
+  (15 paquets en 3 s vers un hôte muet) : ne pas le mettre. Vérifié hors Docker avec les binaires
+  Alpine lancés par le chargeur musl, et le refus reproduit dans un espace de noms réseau
+  (`unshare -U -r -n` + `setpriv`). **Vérifié le 12/10/2026 dans le conteneur verrouillé** (Docker
+  28.1.1, `--cap-drop ALL --security-opt no-new-privileges --read-only --memory 256m`, réseau en
+  pont) : `ping_group_range` = `0 2147483647`, ICMP vers la passerelle et vers 1.1.1.1 OK sous
+  l'uid 1000 ; avec `--sysctl net.ipv4.ping_group_range="1 0"`, refus en code 2 et repli TCP OK
+  (connexion acceptée et RST). Image au repos : ~18 Mo ; sans Gladys, le SDK réessaie avec un délai
+  croissant, sans planter ni écrire le jeton ; `docker stop` → SIGTERM, sortie 0 en 1 s.
+- **Wake-on-LAN** : `gladys.wakeOnLan` → `POST /network/wake`, 1 envoi / 2 s **par intégration**
+  (429 sinon) : file d'attente espacée de 2,1 s dans `monitor.sendMagicPacket`. Le faux Gladys du SDK
+  l'enregistre seulement (`fake.requests`, chemin `/network/wake`).
+- **SSDP** : `scanNetwork('ssdp')` rend `[{ source_ip, source_mac?, source_port, headers }]`,
+  `headers` brut ; `source_mac` vient de la table ARP du cœur, souvent absente. Le `LOCATION` n'est
+  lu que s'il pointe vers l'adresse qui a répondu. Le faux Gladys sert `scanResults.ssdp`.
+- **Widget** : un `text` `caption` est coupé à 80 caractères, `body` à 300.
+- **Action de configuration** : ce qui est **rendu** s'affiche dans la langue de l'utilisateur ;
+  une erreur **levée** n'affiche qu'une chaîne. Les erreurs de saisie sont donc rendues (objet
+  multilingue), pas levées (`answered` dans `src/app.js`).
+- L'action de scène attend 120 s au plus (`timeout_seconds`) : `wake_device` plafonne son attente à
+  100 s, le suivi du réveil continue en arrière-plan jusqu'au délai de réveil.

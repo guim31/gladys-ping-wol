@@ -1,41 +1,44 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene actions (manifest `scene_actions`, Gladys 5.1+).
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
+// - wake_device: Wake-on-LAN from a scene, optionally waiting until the host
+//   answers, so the next steps (start a media player, mount a share, send a
+//   message) run on a machine that is up. The core waits 120 s at most for an
+//   action: the wait stops at 100 s, the follow-up continues in the background
+//   (and fires `wake_failed` at the end of the configured wake timeout).
+// - check_address: one check of any address, without creating a device: the
+//   output feeds a "Continue only if" step.
 //
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// Outputs are numbers (1/0), not booleans: the core's "Continue only if"
+// compares with ===, and its value field only produces numbers and strings,
+// so a boolean output could never be matched (Gladys 5.2.0).
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
+export const WAIT_CAP_SECONDS = 100;
 
-const logger = createLogger({ name: 'scenes' });
+const isTrue = (value) => value === true || value === 'true' || value === 1;
 
 export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
+  async wake_device(monitor, { fields }) {
+    const host = monitor.hostOfDevice(fields.device);
+    if (!isTrue(fields.wait)) {
+      await monitor.wake(host);
+      return {};
+    }
+    // Already up: nothing to send, nothing to wait for.
+    const before = await monitor.check(host);
+    if (before.reachable) {
+      return { online: 1, boot_seconds: 0 };
+    }
+    const waitSeconds = Math.min(WAIT_CAP_SECONDS, monitor.config.wakeTimeout);
+    const result = await monitor.wake(host, { waitMs: waitSeconds * 1000 });
+    return result.online ? { online: 1, boot_seconds: result.bootSeconds } : { online: 0 };
+  },
+
+  async check_address(monitor, { fields }) {
+    const result = await monitor.checkAddress(fields.address, fields.port);
+    return result.reachable
+      ? { reachable: 1, latency_ms: result.latency ?? undefined }
+      : { reachable: 0 };
   },
 };

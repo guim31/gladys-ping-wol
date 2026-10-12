@@ -1,0 +1,30 @@
+[
+  {
+    "source_ip": "192.0.2.1",
+    "source_mac": "02:00:5e:10:00:01",
+    "source_port": 1900,
+    "headers": "HTTP/1.1 200 OK\r\nCache-Control: max-age=1900\r\nLocation: http://192.0.2.1:80/RootDevice.xml\r\nServer: UPnP/1.0 UPnP/1.0 UPnP-Device-Host/1.0\r\nST:urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1\r\nUSN: uuid:00000000-0000-0000-0000-000000000000::urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1\r\nEXT:\r\n\r\n"
+  },
+  {
+    "source_ip": "192.0.2.1",
+    "source_mac": "02:00:5e:10:00:01",
+    "source_port": 1900,
+    "headers": "HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=1800\r\nLOCATION: http://192.0.2.1:80/RootDevice.xml\r\nSERVER: Linux/2.0 UPnP/1.0 async_upnp_client/0.1\r\nST: upnp:rootdevice\r\nUSN: uuid:00000000-0000-0000-0000-000000000000::upnp:rootdevice\r\nBOOTID.UPNP.ORG: 1\r\nEXT:\r\n\r\n"
+  },
+  {
+    "source_ip": "192.0.2.30",
+    "source_port": 1900,
+    "headers": "HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=1800\r\nEXT:\r\nLOCATION: http://192.0.2.30:1400/xml/device_description.xml\r\nSERVER: Linux UPnP/1.0 Sonos/70.3-35220 (ZPS1)\r\nST: urn:schemas-upnp-org:device:MediaRenderer:1\r\nUSN: uuid:RINCON_000E58000000001400::urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n"
+  },
+  {
+    "source_ip": "192.0.2.20",
+    "source_mac": "00:11:32:0a:0b:0c",
+    "source_port": 1900,
+    "headers": "HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=1900\r\nEXT:\r\nLOCATION: http://198.51.100.7:5000/ssdp/desc-DSM-eth0.xml\r\nSERVER: Synology/DSM/192.0.2.20\r\nST: upnp:rootdevice\r\nUSN: uuid:73796E6F-6473-6D00-0000-0011320a0b0c::upnp:rootdevice\r\n\r\n"
+  },
+  {
+    "source_ip": "fe80::1",
+    "source_port": 1900,
+    "headers": "HTTP/1.1 200 OK\r\nST: upnp:rootdevice\r\n\r\n"
+  }
+]

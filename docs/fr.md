@@ -1,67 +1,198 @@
-# Template de démonstration
+# Ping & Wake-on-LAN
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Sachez quels PC, NAS, TV ou téléphones de votre réseau sont allumés, et allumez-les depuis Gladys.
+Chaque hôte surveillé devient un appareil Gladys qui dit s'il répond (en ligne / hors ligne) et en
+combien de temps (latence), avec un bouton **Allumer** quand son adresse MAC est connue
+(Wake-on-LAN).
+
+Usages typiques : allumer le NAS avant une sauvegarde et attendre qu'il réponde, voir sur le
+tableau de bord que la console des enfants est restée allumée, savoir qu'un téléphone est à la
+maison (présence), être prévenu quand un serveur ne répond plus.
+
+> **Développée sans le matériel : vos retours sont bienvenus.** L'intégration est couverte par des
+> tests automatiques, mais n'a pas encore été essayée dans une vraie installation Gladys avec un
+> vrai ordinateur Wake-on-LAN. Dites-nous sur le forum Gladys comment elle se comporte chez vous.
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+- **Un appareil par hôte**, avec ces fonctionnalités :
+
+  | Fonctionnalité | Type dans Gladys                     | Affiche                                                     |
+  | -------------- | ------------------------------------ | ----------------------------------------------------------- |
+  | **En ligne**   | détecteur de présence (oui/non)      | « Présence détectée » en vert quand il répond, rouge sinon  |
+  | **Latence**    | durée, en millisecondes              | aller-retour moyen du dernier test (graphique d'historique) |
+  | **Allumer**    | bouton poussoir (seulement avec MAC) | **Appuyer** envoie le paquet Wake-on-LAN                    |
+
+- Un widget de tableau de bord **Appareils réseau** : plusieurs hôtes d'un coup d'œil, avec un
+  bouton **Allumer** pour ceux qui sont éteints.
+- Un déclencheur de scène, **Un appareil ne s'est pas allumé**, et deux actions de scène,
+  **Allumer un appareil (Wake-on-LAN)** (qui peut attendre que l'appareil réponde) et **Tester une
+  adresse**.
+
+## Prérequis
+
+- Gladys Assistant **5.1.0** ou plus récent.
+- Pour les tests : des hôtes joignables depuis la machine Gladys, par **adresse IP** (de préférence
+  fixe : réservez-la dans les réglages DHCP de votre box) ou par un nom DNS. Les noms `.local`
+  (mDNS) ne peuvent pas être résolus dans l'intégration.
+- Pour le Wake-on-LAN :
+  - l'ordinateur est sur le **même réseau local** que Gladys, et de préférence **en filaire** (le
+    Wake-on-LAN en Wi-Fi fonctionne rarement) ;
+  - le Wake-on-LAN est activé dans son **BIOS/UEFI** et dans son système (Windows : propriétés de
+    la carte réseau, **Wake on Magic Packet** ; désactiver le **Démarrage rapide** aide souvent ;
+    Linux : `ethtool -s <interface> wol g` ; NAS : réglages d'alimentation) ;
+  - son **adresse MAC** (dans la liste des appareils de votre box, ou par `ipconfig /all`,
+    `ip link`).
+- À l'installation, Gladys vous demande d'autoriser deux accès : **Accès Wake-on-LAN** (le cœur
+  envoie les paquets magiques : le conteneur de l'intégration ne peut pas émettre de diffusion) et
+  **Recherche SSDP de ssdp:all** (la recherche sur le réseau).
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+### Réglages
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+| Réglage                                | Défaut    | Effet                                                                                                               |
+| -------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Intervalle des tests**               | 30 s      | Fréquence à laquelle chaque hôte est testé (de 15 s à 5 min).                                                       |
+| **Hors ligne après**                   | 1 minute  | Durée sans aucune réponse avant qu'un hôte passe hors ligne. « Au premier test sans réponse » réagit tout de suite. |
+| **Délai de réveil**                    | 3 minutes | Durée laissée à un appareil réveillé pour répondre avant **Un appareil ne s'est pas allumé**.                       |
+| **Langue des noms de fonctionnalités** | Français  | Noms des fonctionnalités des nouveaux appareils (En ligne, Latence, Allumer) et langue des messages.                |
 
-## Actions
+### Ajouter un hôte
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+Dans **Intégrations → Ping & Wake-on-LAN → Configuration**, remplissez le formulaire **Ajouter ou
+modifier un hôte** et lancez-le :
 
-## Scènes
+- **Nom** et **Adresse IP ou nom d'hôte** (obligatoires) ;
+- **Adresse MAC**, pour obtenir le bouton **Allumer** (toutes notations : `64:e4:d5:b4:12:66`,
+  `64-E4-D5-B4-12-66`…) ;
+- **Adresse de diffusion**, seulement si l'ordinateur ignore le réveil par défaut (essayez
+  l'adresse de diffusion de son réseau, ex. `192.168.1.255`) ;
+- **Méthode de test** : **Automatique** (ping, puis TCP quand le ping reste sans réponse), **Ping
+  (ICMP) seulement**, ou **Port TCP seulement** ;
+- **Port TCP** : le port essayé quand le ping échoue (ex. 445 pour un PC Windows, 62078 pour un
+  iPhone). Sans lui, la méthode automatique essaie quelques ports courants ;
+- **Hors ligne après (cet hôte)** : remplace le réglage pour cet hôte (téléphones : 10 à
+  30 minutes).
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+L'intégration teste l'hôte une fois et vous dit s'il répond. Ouvrez ensuite l'onglet
+**Découverte** et cliquez sur **Ajouter à Gladys**. Pour modifier un hôte, relancez le formulaire
+avec le même nom ou la même adresse : l'appareil garde son historique. Si l'adresse MAC a été
+ajoutée, cliquez sur **Mettre à jour** dans l'onglet **Découverte** pour obtenir le bouton.
+**Retirer un hôte** le sort de la liste (son appareil reste dans Gladys jusqu'à ce que vous le
+supprimiez).
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+### Recherche sur le réseau
 
-## Tableau de bord
+**Rechercher sur le réseau** (et le bouton **Scanner** de l'onglet **Découverte**) demande à Gladys
+les appareils qui s'annoncent sur le réseau (UPnP/SSDP : TV, NAS, serveurs multimédias, box,
+imprimantes, consoles, PC Windows avec la découverte réseau active) et les propose dans l'onglet
+**Découverte**, nommés d'après leur description UPnP. Quand la machine Gladys connaît leur adresse
+MAC, l'appareil arrive avec le bouton **Allumer**. Les téléphones et la plupart des ordinateurs ne
+s'annoncent pas : ajoutez-les à la main.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+## Appareils
+
+- **En ligne** : 1 dès que l'hôte répond, 0 une fois qu'il n'a pas répondu pendant le délai **Hors
+  ligne après**. Un hôte pas encore testé n'a pas de valeur.
+- **Latence** : aller-retour moyen du dernier test, en millisecondes, republié quand il bouge de
+  20 % (1 ms au moins) : l'historique reste lisible. Rien n'est publié tant que l'hôte est hors
+  ligne.
+- **Allumer** : envoie le paquet Wake-on-LAN. L'hôte est ensuite testé toutes les 5 secondes ; un
+  paquet est renvoyé toutes les 30 secondes tant qu'il reste muet, jusqu'à ce qu'il réponde ou que
+  le **Délai de réveil** s'achève.
+
+Comment un hôte est testé :
+
+- **Ping (ICMP)** : trois demandes d'écho à 0,2 s d'intervalle, 1 seconde pour répondre.
+- **TCP** : une connexion à un port. Une connexion refusée prouve aussi que l'hôte est allumé :
+  seul le silence signifie hors ligne. Cela rattrape les hôtes qui ignorent le ping (pare-feu
+  Windows, certains téléphones). Sans port, la méthode automatique essaie ensemble 80, 443, 22,
+  445, 139, 3389, 5000, 8080, 8009 et 62078.
+
+Gladys affiche « Pas de valeur récente » sur une valeur de plus de 48 heures : un état inchangé
+est republié toutes les 12 heures pour l'éviter.
+
+## Widget de tableau de bord
+
+**Éditer le tableau de bord → ajouter un widget → Appareils réseau**. Laissez **Appareils
+affichés** vide pour voir tous les hôtes (10 au plus), ou choisissez-en. Chaque ligne donne l'état
+d'un hôte : **En ligne** avec sa latence, **Hors ligne**, ou **Démarrage** après un réveil.
+Jusqu'à quatre boutons **Allumer** apparaissent pour les hôtes hors ligne qui ont une adresse MAC.
+
+## Déclencheur de scène
+
+**Un appareil ne s'est pas allumé** se déclenche quand un appareil réveillé par l'intégration
+(bouton, widget ou scène) ne répond toujours pas à la fin du **Délai de réveil**. Le filtre
+**Appareil** est facultatif. Variables : **Nom de l'appareil**, **Adresse**, **Secondes
+d'attente**.
+
+**Attention aux boucles** : une scène qui réveille de nouveau l'appareil sur ce déclencheur recommence à chaque échec, toutes les quelques minutes, sans fin (un ordinateur débranché du secteur ne répondra jamais). Envoyez plutôt un message, ou arrêtez-vous après un seul nouvel essai par une condition de votre choix.
+
+Pour « l'appareil est allumé / éteint », utilisez le déclencheur du cœur **Changement d'état de
+l'appareil** sur la fonctionnalité **En ligne**, et cochez **Exécuter seulement lorsque le seuil
+est passé** : l'état est renvoyé toutes les 12 heures, et sans la case la scène se relancerait à
+chaque fois.
+
+## Actions de scène
+
+- **Allumer un appareil (Wake-on-LAN)** : **Appareil** (obligatoire) et **Attendre qu'il
+  réponde**. Sans attente, le paquet est envoyé et la scène continue. Avec, les étapes suivantes
+  démarrent quand l'appareil répond, ou après 100 secondes (Gladys accorde 120 secondes au plus à
+  une action). Résultats : **Répond** (1 ou 0) et **Durée de démarrage** en secondes. Un appareil
+  déjà allumé n'est pas réveillé (Répond 1, Durée de démarrage 0).
+- **Tester une adresse** : une adresse IP ou un nom d'hôte (variables de scène acceptées) et un
+  **Port TCP** facultatif (seul ce port est alors essayé). Résultats : **Répond** (1 ou 0) et
+  **Latence**. Aucun appareil n'est créé.
+
+Les résultats sont des nombres (1/0) pour que **Condition sur variables** puisse les comparer :
+choisissez le résultat, **=**, et tapez `1`.
+
+## Exemples de scènes
+
+1. **Sauvegarde sur le NAS la nuit** : **Déclenchement programmé** à 2 h → **Allumer un appareil**
+   NAS avec **Attendre qu'il réponde** → **Condition sur variables** : Répond = 1 → vos étapes de
+   sauvegarde (par exemple **Faire une requête HTTP** vers le NAS) → **Envoyer un message** avec le
+   résultat **Durée de démarrage** (à insérer depuis la liste des variables).
+2. **Soirée film** : dans la scène qui prépare le salon → **Allumer un appareil** PC multimédia
+   (sans attendre) → **Attendre** 1 minute → allumer la TV.
+3. **Surveillance d'un serveur** : **Changement d'état de l'appareil** sur **En ligne** du
+   serveur, valeur **Pas de présence**, case du seuil cochée → **Envoyer un message** « Le serveur ne répond
+   plus ». Une deuxième scène sur **Un appareil ne s'est pas allumé** → **Envoyer un message** avec
+   les variables **Nom de l'appareil** et **Secondes d'attente**.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **Un hôte reste hors ligne alors qu'il est allumé** : il ignore le ping (pare-feu Windows,
+  téléphones). Choisissez **Méthode de test → Port TCP seulement** avec un port qu'il ouvre (445
+  pour le partage de fichiers Windows, 3389 pour le bureau à distance, 22 pour SSH, 62078 pour un
+  iPhone), ou gardez **Automatique** avec ce port.
+- **Un téléphone passe sans cesse hors ligne puis revient** : en veille Wi-Fi, les téléphones
+  cessent de répondre pendant des minutes. Donnez à l'hôte **Hors ligne après** 10 à 30 minutes.
+- **L'écran de configuration dit que le ping (ICMP) n'est pas autorisé** : le Docker de votre
+  machine Gladys ne laisse pas les conteneurs envoyer de ping (Docker antérieur à 20.10). Les hôtes
+  sont alors testés en TCP seulement : donnez un port à chacun, ou mettez Docker à jour.
+- **Allumer ne fait rien** : vérifiez l'adresse MAC, que le Wake-on-LAN est activé dans le
+  BIOS/UEFI et le système, et que l'ordinateur est en filaire. Essayez l'adresse de diffusion de
+  son réseau. Un ordinateur débranché du secteur a souvent besoin d'un démarrage normal avant que
+  le Wake-on-LAN refonctionne.
+- **La recherche sur le réseau ne trouve rien** : beaucoup d'appareils ne répondent pas au SSDP ;
+  ajoutez-les à la main. Si le message dit que la recherche est indisponible, Gladys a refusé
+  l'accès SSDP.
+- **« Pas de valeur récente » sur un appareil** : l'intégration est peut-être arrêtée ; regardez
+  ses logs dans l'onglet **Supervision**.
+
+## Limites
+
+- Adresses IPv4 et noms DNS seulement ; les noms `.local` (mDNS) ne sont pas résolus.
+- Le Wake-on-LAN atteint le réseau local de la machine Gladys : réveiller un ordinateur d'un autre
+  réseau (VPN, autre VLAN) dépend de votre routeur, qui le plus souvent ne relaie pas les
+  diffusions.
+- Gladys envoie un paquet magique toutes les 2 secondes au plus : réveiller dix ordinateurs à la
+  fois prend 20 secondes.
+- Un réveil réussi signifie seulement que le paquet est parti : seules les réponses suivantes
+  prouvent que l'appareil est allumé.
+- 64 hôtes au plus. Chaque test envoie 3 pings ou, en TCP, jusqu'à 10 tentatives de connexion par
+  hôte ; rien ne sort de votre réseau, aucun compte ni service cloud n'est utilisé.
+- Ce que l'intégration conserve : la liste des hôtes et leurs options, dans `/data/hosts.json` de
+  son conteneur.
