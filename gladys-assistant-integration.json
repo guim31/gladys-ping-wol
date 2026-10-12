@@ -1,177 +1,859 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Ping & Wake-on-LAN",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "See which computers, NAS, TVs or phones are on, and wake them up with Wake-on-LAN.",
+    "fr": "Voyez quels PC, NAS, TV ou téléphones sont allumés, et réveillez-les par Wake-on-LAN.",
+    "de": "Sieh, welche PCs, NAS, Fernseher oder Handys an sind, und wecke sie per Wake-on-LAN.",
+    "es": "Vea qué ordenadores, NAS, televisores o móviles están encendidos y enciéndalos con Wake-on-LAN."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-ping-wol:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-ping-wol/main/cover.png",
+  "categories": ["network"],
+  "transports": ["local"],
+  "network_wake": true,
+  "network_discovery": [
+    {
+      "type": "ssdp",
+      "st": "ssdp:all"
+    }
+  ],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your hosts",
+        "fr": "Vos hôtes",
+        "de": "Deine Hosts",
+        "es": "Sus equipos"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Add each computer, NAS, TV or phone to watch with the \"Add or update a host\" action below, then create its device in the Discover tab. \"Search the network\" proposes the devices that announce themselves (UPnP), with their MAC address when Gladys knows it.",
+        "fr": "Ajoutez chaque PC, NAS, TV ou téléphone à surveiller avec l'action « Ajouter ou modifier un hôte » ci-dessous, puis créez son appareil dans l'onglet Découverte. « Rechercher sur le réseau » propose les appareils qui s'annoncent (UPnP), avec leur adresse MAC quand Gladys la connaît.",
+        "de": "Füge jeden zu überwachenden PC, jedes NAS, jeden Fernseher oder jedes Handy mit der Aktion „Host hinzufügen oder ändern“ unten hinzu und lege dann sein Gerät im Tab „Entdecken“ an. „Im Netzwerk suchen“ schlägt die Geräte vor, die sich ankündigen (UPnP), mit ihrer MAC-Adresse, wenn Gladys sie kennt.",
+        "es": "Añada cada ordenador, NAS, televisor o móvil que quiera vigilar con la acción «Añadir o modificar un equipo» de abajo y, después, cree su dispositivo en la pestaña Descubrir. «Buscar en la red» propone los dispositivos que se anuncian (UPnP), con su dirección MAC cuando Gladys la conoce."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-ping-wol/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Installationsanleitung",
+            "es": "Guía de instalación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "check_interval",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Check interval",
+        "fr": "Intervalle des tests",
+        "de": "Prüfintervall",
+        "es": "Intervalo de comprobación"
+      },
+      "description": {
+        "en": "How often every host is checked.",
+        "fr": "Fréquence à laquelle chaque hôte est testé.",
+        "de": "Wie oft jeder Host geprüft wird.",
+        "es": "Con qué frecuencia se comprueba cada equipo."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "30",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "15",
+          "label": {
+            "en": "15 seconds",
+            "fr": "15 secondes",
+            "de": "15 Sekunden",
+            "es": "15 segundos"
+          }
+        },
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "offline_after",
+      "type": "select",
+      "label": {
+        "en": "Offline after",
+        "fr": "Hors ligne après",
+        "de": "Offline nach",
+        "es": "Sin conexión tras"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Time without any answer before a host is shown offline. Phones asleep on Wi-Fi skip answers: give them 5 to 10 minutes (per host, in the action below).",
+        "fr": "Durée sans aucune réponse avant qu'un hôte passe hors ligne. Les téléphones en veille Wi-Fi ne répondent pas toujours : comptez 5 à 10 minutes (par hôte, dans l'action ci-dessous).",
+        "de": "Zeit ohne jede Antwort, bevor ein Host als offline gilt. Handys im WLAN-Ruhezustand antworten nicht immer: Gib ihnen 5 bis 10 Minuten (pro Host, in der Aktion unten).",
+        "es": "Tiempo sin ninguna respuesta antes de mostrar un equipo sin conexión. Los móviles en reposo wifi no siempre responden: deles de 5 a 10 minutos (por equipo, en la acción de abajo)."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "60",
+      "options": [
+        {
+          "value": "0",
+          "label": {
+            "en": "At the first failed check",
+            "fr": "Au premier test sans réponse",
+            "de": "Bei der ersten Prüfung ohne Antwort",
+            "es": "En la primera comprobación sin respuesta"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "180",
+          "label": {
+            "en": "3 minutes",
+            "fr": "3 minutes",
+            "de": "3 Minuten",
+            "es": "3 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "600",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        },
+        {
+          "value": "900",
+          "label": {
+            "en": "15 minutes",
+            "fr": "15 minutes",
+            "de": "15 Minuten",
+            "es": "15 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "wake_timeout",
+      "type": "select",
+      "label": {
+        "en": "Wake-up timeout",
+        "fr": "Délai de réveil",
+        "de": "Weck-Zeitlimit",
+        "es": "Tiempo máximo de encendido"
+      },
+      "description": {
+        "en": "How long a woken device has to answer before the \"A device did not wake up\" trigger fires. A packet is sent again every 30 seconds meanwhile.",
+        "fr": "Durée laissée à un appareil réveillé pour répondre avant le déclencheur « Un appareil ne s'est pas allumé ». Un paquet est renvoyé toutes les 30 secondes en attendant.",
+        "de": "Zeit, die ein geweckter Host zum Antworten hat, bevor der Auslöser „Ein Gerät ist nicht aufgewacht“ auslöst. Bis dahin wird alle 30 Sekunden erneut ein Paket gesendet.",
+        "es": "Tiempo que tiene un dispositivo despertado para responder antes del activador «Un dispositivo no se ha encendido». Mientras tanto, se reenvía un paquete cada 30 segundos."
+      },
+      "required": false,
+      "default": "180",
+      "options": [
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "180",
+          "label": {
+            "en": "3 minutes",
+            "fr": "3 minutes",
+            "de": "3 Minuten",
+            "es": "3 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "600",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de las funciones"
+      },
+      "description": {
+        "en": "Names given to the features of new devices (Online, Latency, Wake up) and language of the messages.",
+        "fr": "Noms donnés aux fonctionnalités des nouveaux appareils (En ligne, Latence, Allumer) et langue des messages.",
+        "de": "Namen der Funktionen neuer Geräte (Online, Latenz, Aufwecken) und Sprache der Meldungen.",
+        "es": "Nombres de las funciones de los nuevos dispositivos (En línea, Latencia, Encender) e idioma de los mensajes."
+      },
+      "required": false,
+      "default": "en",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "add_host",
+      "label": {
+        "en": "Add or update a host",
+        "fr": "Ajouter ou modifier un hôte",
+        "de": "Host hinzufügen oder ändern",
+        "es": "Añadir o modificar un equipo"
+      },
+      "description": {
+        "en": "Adds a host to watch, or updates the host with the same name or address, then checks it once.",
+        "fr": "Ajoute un hôte à surveiller, ou met à jour celui de même nom ou de même adresse, puis le teste une fois.",
+        "de": "Fügt einen zu überwachenden Host hinzu oder aktualisiert den mit gleichem Namen oder gleicher Adresse und prüft ihn dann einmal.",
+        "es": "Añade un equipo que vigilar, o actualiza el que tiene el mismo nombre o la misma dirección, y lo comprueba una vez."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "name",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Name",
+            "fr": "Nom",
+            "de": "Name",
+            "es": "Nombre"
+          },
+          "placeholder": {
+            "en": "e.g. Office PC",
+            "fr": "ex. PC du bureau",
+            "de": "z. B. Büro-PC",
+            "es": "p. ej. PC del despacho"
+          }
+        },
+        {
+          "key": "address",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "IP address or host name",
+            "fr": "Adresse IP ou nom d'hôte",
+            "de": "IP-Adresse oder Hostname",
+            "es": "Dirección IP o nombre de equipo"
+          },
+          "description": {
+            "en": "A fixed address works best (DHCP reservation in your router). mDNS names (.local) do not resolve in the integration.",
+            "fr": "Une adresse fixe est préférable (réservation DHCP dans votre box). Les noms mDNS (.local) ne sont pas résolus par l'intégration.",
+            "de": "Eine feste Adresse ist am besten (DHCP-Reservierung im Router). mDNS-Namen (.local) werden von der Integration nicht aufgelöst.",
+            "es": "Es mejor una dirección fija (reserva DHCP en su router). Los nombres mDNS (.local) no se resuelven en la integración."
+          },
+          "placeholder": {
+            "en": "e.g. 192.168.1.20",
+            "fr": "ex. 192.168.1.20",
+            "de": "z. B. 192.168.1.20",
+            "es": "p. ej. 192.168.1.20"
+          }
+        },
+        {
+          "key": "mac",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "MAC address (for Wake-on-LAN)",
+            "fr": "Adresse MAC (pour Wake-on-LAN)",
+            "de": "MAC-Adresse (für Wake-on-LAN)",
+            "es": "Dirección MAC (para Wake-on-LAN)"
+          },
+          "description": {
+            "en": "Optional. With it, the device gets a \"Wake up\" button.",
+            "fr": "Facultative. Avec elle, l'appareil reçoit un bouton « Allumer ».",
+            "de": "Optional. Damit bekommt das Gerät eine Schaltfläche „Aufwecken“.",
+            "es": "Opcional. Con ella, el dispositivo recibe un botón «Encender»."
+          },
+          "placeholder": {
+            "en": "e.g. 64:e4:d5:b4:12:66",
+            "fr": "ex. 64:e4:d5:b4:12:66",
+            "de": "z. B. 64:e4:d5:b4:12:66",
+            "es": "p. ej. 64:e4:d5:b4:12:66"
+          }
+        },
+        {
+          "key": "broadcast",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Broadcast address (optional)",
+            "fr": "Adresse de diffusion (facultative)",
+            "de": "Broadcast-Adresse (optional)",
+            "es": "Dirección de difusión (opcional)"
+          },
+          "description": {
+            "en": "Only if the device ignores the default wake-up: the broadcast address of its network.",
+            "fr": "Seulement si l'appareil ignore le réveil par défaut : l'adresse de diffusion de son réseau.",
+            "de": "Nur wenn das Gerät das Standard-Wecken ignoriert: die Broadcast-Adresse seines Netzwerks.",
+            "es": "Solo si el dispositivo ignora el encendido por defecto: la dirección de difusión de su red."
+          },
+          "placeholder": {
+            "en": "e.g. 192.168.1.255",
+            "fr": "ex. 192.168.1.255",
+            "de": "z. B. 192.168.1.255",
+            "es": "p. ej. 192.168.1.255"
+          }
+        },
+        {
+          "key": "method",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": false,
+          "label": {
+            "en": "Check method",
+            "fr": "Méthode de test",
+            "de": "Prüfmethode",
+            "es": "Método de comprobación"
+          },
+          "description": {
+            "en": "Automatic: ping, then TCP if the host does not answer the ping.",
+            "fr": "Automatique : ping, puis TCP si l'hôte ne répond pas au ping.",
+            "de": "Automatisch: Ping, dann TCP, wenn der Host nicht auf den Ping antwortet.",
+            "es": "Automático: ping y, después, TCP si el equipo no responde al ping."
+          },
+          "options": [
+            {
+              "value": "auto",
+              "label": {
+                "en": "Automatic",
+                "fr": "Automatique",
+                "de": "Automatisch",
+                "es": "Automático"
+              }
+            },
+            {
+              "value": "icmp",
+              "label": {
+                "en": "Ping (ICMP) only",
+                "fr": "Ping (ICMP) seulement",
+                "de": "Nur Ping (ICMP)",
+                "es": "Solo ping (ICMP)"
+              }
+            },
+            {
+              "value": "tcp",
+              "label": {
+                "en": "TCP port only",
+                "fr": "Port TCP seulement",
+                "de": "Nur TCP-Port",
+                "es": "Solo puerto TCP"
+              }
+            }
+          ]
+        },
+        {
+          "key": "port",
+          "type": "number",
+          "required": false,
+          "min": 1,
+          "max": 65535,
+          "label": {
+            "en": "TCP port (optional)",
+            "fr": "Port TCP (facultatif)",
+            "de": "TCP-Port (optional)",
+            "es": "Puerto TCP (opcional)"
+          },
+          "description": {
+            "en": "Port tried when the ping fails, e.g. 445 for a Windows PC, 62078 for an iPhone.",
+            "fr": "Port essayé quand le ping échoue, ex. 445 pour un PC Windows, 62078 pour un iPhone.",
+            "de": "Port, der probiert wird, wenn der Ping scheitert, z. B. 445 für einen Windows-PC, 62078 für ein iPhone.",
+            "es": "Puerto que se prueba cuando el ping falla, p. ej. 445 para un PC con Windows, 62078 para un iPhone."
+          }
+        },
+        {
+          "key": "offline_after",
+          "type": "select",
+          "required": false,
+          "label": {
+            "en": "Offline after (this host)",
+            "fr": "Hors ligne après (cet hôte)",
+            "de": "Offline nach (dieser Host)",
+            "es": "Sin conexión tras (este equipo)"
+          },
+          "description": {
+            "en": "Empty: the setting of the integration.",
+            "fr": "Vide : le réglage de l'intégration.",
+            "de": "Leer: die Einstellung der Integration.",
+            "es": "Vacío: el ajuste de la integración."
+          },
+          "options": [
+            {
+              "value": "0",
+              "label": {
+                "en": "At the first failed check",
+                "fr": "Au premier test sans réponse",
+                "de": "Bei der ersten Prüfung ohne Antwort",
+                "es": "En la primera comprobación sin respuesta"
+              }
+            },
+            {
+              "value": "60",
+              "label": {
+                "en": "1 minute",
+                "fr": "1 minute",
+                "de": "1 Minute",
+                "es": "1 minuto"
+              }
+            },
+            {
+              "value": "180",
+              "label": {
+                "en": "3 minutes",
+                "fr": "3 minutes",
+                "de": "3 Minuten",
+                "es": "3 minutos"
+              }
+            },
+            {
+              "value": "300",
+              "label": {
+                "en": "5 minutes",
+                "fr": "5 minutes",
+                "de": "5 Minuten",
+                "es": "5 minutos"
+              }
+            },
+            {
+              "value": "600",
+              "label": {
+                "en": "10 minutes",
+                "fr": "10 minutes",
+                "de": "10 Minuten",
+                "es": "10 minutos"
+              }
+            },
+            {
+              "value": "900",
+              "label": {
+                "en": "15 minutes",
+                "fr": "15 minutes",
+                "de": "15 Minuten",
+                "es": "15 minutos"
+              }
+            },
+            {
+              "value": "1800",
+              "label": {
+                "en": "30 minutes",
+                "fr": "30 minutes",
+                "de": "30 Minuten",
+                "es": "30 minutos"
+              }
+            }
+          ]
         }
       ]
+    },
+    {
+      "key": "remove_host",
+      "label": {
+        "en": "Remove a host",
+        "fr": "Retirer un hôte",
+        "de": "Host entfernen",
+        "es": "Quitar un equipo"
+      },
+      "description": {
+        "en": "Removes a host from the list. Its device, if created, stays in Gladys until you delete it.",
+        "fr": "Retire un hôte de la liste. Son appareil, s'il a été créé, reste dans Gladys jusqu'à ce que vous le supprimiez.",
+        "de": "Entfernt einen Host aus der Liste. Sein Gerät bleibt, falls angelegt, in Gladys, bis du es löschst.",
+        "es": "Quita un equipo de la lista. Su dispositivo, si se creó, permanece en Gladys hasta que lo elimine."
+      },
+      "timeout_seconds": 15,
+      "fields": [
+        {
+          "key": "host",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Name or address",
+            "fr": "Nom ou adresse",
+            "de": "Name oder Adresse",
+            "es": "Nombre o dirección"
+          }
+        }
+      ]
+    },
+    {
+      "key": "search",
+      "label": {
+        "en": "Search the network",
+        "fr": "Rechercher sur le réseau",
+        "de": "Im Netzwerk suchen",
+        "es": "Buscar en la red"
+      },
+      "description": {
+        "en": "Lists the devices that announce themselves (UPnP: TVs, NAS, media servers, routers…) and proposes them in the Discover tab.",
+        "fr": "Liste les appareils qui s'annoncent (UPnP : TV, NAS, serveurs multimédias, box…) et les propose dans l'onglet Découverte.",
+        "de": "Listet die Geräte auf, die sich ankündigen (UPnP: Fernseher, NAS, Medienserver, Router…), und schlägt sie im Tab „Entdecken“ vor.",
+        "es": "Enumera los dispositivos que se anuncian (UPnP: televisores, NAS, servidores multimedia, routers…) y los propone en la pestaña Descubrir."
+      },
+      "timeout_seconds": 45
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "wake_failed",
+      "label": {
+        "en": "A device did not wake up",
+        "fr": "Un appareil ne s'est pas allumé",
+        "de": "Ein Gerät ist nicht aufgewacht",
+        "es": "Un dispositivo no se ha encendido"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A device woken with Wake-on-LAN still does not answer at the end of the wake-up timeout.",
+        "fr": "Un appareil réveillé par Wake-on-LAN ne répond toujours pas à la fin du délai de réveil.",
+        "de": "Ein per Wake-on-LAN geweckter Host antwortet am Ende des Weck-Zeitlimits immer noch nicht.",
+        "es": "Un dispositivo despertado con Wake-on-LAN sigue sin responder al final del tiempo máximo de encendido."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Device",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Dispositivo"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Device name",
+            "fr": "Nom de l'appareil",
+            "de": "Gerätename",
+            "es": "Nombre del dispositivo"
+          }
+        },
+        {
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "waited_seconds",
+          "type": "number",
+          "label": {
+            "en": "Seconds waited",
+            "fr": "Secondes d'attente",
+            "de": "Gewartete Sekunden",
+            "es": "Segundos de espera"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "wake_device",
+      "label": {
+        "en": "Wake a device (Wake-on-LAN)",
+        "fr": "Allumer un appareil (Wake-on-LAN)",
+        "de": "Gerät aufwecken (Wake-on-LAN)",
+        "es": "Encender un dispositivo (Wake-on-LAN)"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Sends the Wake-on-LAN packet, and can wait until the device answers (100 seconds at most).",
+        "fr": "Envoie le paquet Wake-on-LAN, et peut attendre que l'appareil réponde (100 secondes au plus).",
+        "de": "Sendet das Wake-on-LAN-Paket und kann warten, bis das Gerät antwortet (höchstens 100 Sekunden).",
+        "es": "Envía el paquete Wake-on-LAN y puede esperar a que el dispositivo responda (100 segundos como máximo)."
+      },
+      "timeout_seconds": 120,
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Device",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Dispositivo"
+          },
           "required": true
+        },
+        {
+          "key": "wait",
+          "type": "boolean",
+          "required": false,
+          "label": {
+            "en": "Wait until it answers",
+            "fr": "Attendre qu'il réponde",
+            "de": "Warten, bis es antwortet",
+            "es": "Esperar a que responda"
+          },
+          "description": {
+            "en": "The following steps start once the device answers, or after 100 seconds.",
+            "fr": "Les étapes suivantes démarrent quand l'appareil répond, ou après 100 secondes.",
+            "de": "Die nächsten Schritte starten, sobald das Gerät antwortet, oder nach 100 Sekunden.",
+            "es": "Los pasos siguientes empiezan cuando el dispositivo responde o tras 100 segundos."
+          }
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "online",
+          "type": "number",
+          "label": {
+            "en": "Answering (1 = yes, 0 = no)",
+            "fr": "Répond (1 = oui, 0 = non)",
+            "de": "Antwortet (1 = ja, 0 = nein)",
+            "es": "Responde (1 = sí, 0 = no)"
+          }
+        },
+        {
+          "key": "boot_seconds",
+          "type": "number",
+          "label": {
+            "en": "Start-up time (seconds)",
+            "fr": "Durée de démarrage (secondes)",
+            "de": "Startdauer (Sekunden)",
+            "es": "Tiempo de arranque (segundos)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "check_address",
+      "label": {
+        "en": "Check an address",
+        "fr": "Tester une adresse",
+        "de": "Adresse prüfen",
+        "es": "Comprobar una dirección"
+      },
+      "description": {
+        "en": "Checks once whether an address answers (ping, then TCP), without creating a device.",
+        "fr": "Teste une fois si une adresse répond (ping, puis TCP), sans créer d'appareil.",
+        "de": "Prüft einmal, ob eine Adresse antwortet (Ping, dann TCP), ohne ein Gerät anzulegen.",
+        "es": "Comprueba una vez si una dirección responde (ping y, después, TCP), sin crear un dispositivo."
+      },
+      "timeout_seconds": 20,
+      "fields": [
+        {
+          "key": "address",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "IP address or host name",
+            "fr": "Adresse IP ou nom d'hôte",
+            "de": "IP-Adresse oder Hostname",
+            "es": "Dirección IP o nombre de equipo"
+          },
+          "placeholder": {
+            "en": "e.g. 192.168.1.20",
+            "fr": "ex. 192.168.1.20",
+            "de": "z. B. 192.168.1.20",
+            "es": "p. ej. 192.168.1.20"
+          }
+        },
+        {
+          "key": "port",
+          "type": "number",
+          "required": false,
+          "min": 1,
+          "max": 65535,
+          "label": {
+            "en": "TCP port (optional)",
+            "fr": "Port TCP (facultatif)",
+            "de": "TCP-Port (optional)",
+            "es": "Puerto TCP (opcional)"
+          },
+          "description": {
+            "en": "With a port, only this TCP port is tried (e.g. 443 for a web server).",
+            "fr": "Avec un port, seul ce port TCP est essayé (ex. 443 pour un serveur web).",
+            "de": "Mit einem Port wird nur dieser TCP-Port probiert (z. B. 443 für einen Webserver).",
+            "es": "Con un puerto, solo se prueba ese puerto TCP (p. ej. 443 para un servidor web)."
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "key": "reachable",
+          "type": "number",
+          "label": {
+            "en": "Answers (1 = yes, 0 = no)",
+            "fr": "Répond (1 = oui, 0 = non)",
+            "de": "Antwortet (1 = ja, 0 = nein)",
+            "es": "Responde (1 = sí, 0 = no)"
+          }
+        },
+        {
+          "key": "latency_ms",
+          "type": "number",
+          "label": {
+            "en": "Latency (ms)",
+            "fr": "Latence (ms)",
+            "de": "Latenz (ms)",
+            "es": "Latencia (ms)"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
+      "key": "hosts",
+      "label": {
+        "en": "Network devices",
+        "fr": "Appareils réseau",
+        "de": "Netzwerkgeräte",
+        "es": "Equipos de red"
+      },
       "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+        "en": "Which devices are on, with their latency, and a Wake button for the ones that are off.",
+        "fr": "Quels appareils sont allumés, avec leur latence, et un bouton Allumer pour ceux éteints.",
+        "de": "Welche Geräte an sind, mit Latenz, und eine Weck-Schaltfläche für die ausgeschalteten.",
+        "es": "Qué equipos están encendidos, con su latencia, y un botón Encender para los apagados."
       },
       "icon": "activity",
-      "action_timeout_seconds": 15
+      "action_timeout_seconds": 15,
+      "settings": [
+        {
+          "key": "devices",
+          "type": "multi_select",
+          "source": "devices",
+          "required": false,
+          "label": {
+            "en": "Devices shown",
+            "fr": "Appareils affichés",
+            "de": "Angezeigte Geräte",
+            "es": "Dispositivos mostrados"
+          },
+          "description": {
+            "en": "Leave empty to show every device (10 at most).",
+            "fr": "Laissez vide pour afficher tous les appareils (10 au plus).",
+            "de": "Leer lassen, um alle Geräte anzuzeigen (höchstens 10).",
+            "es": "Déjelo vacío para mostrar todos los dispositivos (10 como máximo)."
+          }
+        }
+      ]
     }
   ]
 }

@@ -1,93 +1,89 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { DEVICE_BLUEPRINTS } from '../src/devices/index.js';
-import { MOTION_DETECTED_TRIGGER, motionSensor } from '../src/devices/motionSensor.js';
-import { SCENE_ACTIONS } from '../src/scenes.js';
-import { normalizeConfig } from '../src/config.js';
+import { WAIT_CAP_SECONDS } from '../src/scenes.js';
+import { addHost, create, createNetwork, createWorld, wakes } from './helpers/world.js';
 
-const manifest = JSON.parse(
-  await readFile(new URL('../gladys-assistant-integration.json', import.meta.url), 'utf8'),
-);
-const config = normalizeConfig();
+async function world(t, hosts, config) {
+  const w = await createWorld({ network: createNetwork(hosts), config });
+  t.after(() => w.app.stop());
+  await addHost(w, { name: 'Office PC', address: '192.0.2.20', mac: '64:e4:d5:b4:12:66' });
+  const device = await create(w, 'Office PC');
+  return { ...w, device };
+}
 
-const declarationOf = (list, key) => manifest[list].find((entry) => entry.key === key);
-const keysOf = (list) => (list ?? []).map((entry) => entry.key);
-const deviceIdOf = (gladys, key) =>
-  DEVICE_BLUEPRINTS.find((bp) => bp.key === key).deviceExternalId(gladys);
-
-// Let the async interval callback run to completion.
-const flush = () => new Promise((resolve) => setImmediate(resolve));
-
-test('the motion sensor fires one motion_detected event per detection, none on the clear', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'one detection, one event');
-    assert.equal(gladys.fake.sceneEvents[0].key, MOTION_DETECTED_TRIGGER);
-    assert.equal(gladys.fake.states.at(-1).state, 1, 'the state is still published');
-
-    t.mock.timers.tick(10_000);
-    await flush();
-    assert.equal(gladys.fake.states.at(-1).state, 0, 'the detection is cleared');
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'the clear fires no event');
-  } finally {
-    stopPush();
+/** Runs the wake checks until `promise` settles (the clock moves 5 s per round). */
+async function drive(w, promise, rounds = 40) {
+  let settled = false;
+  promise.finally(() => {
+    settled = true;
+  });
+  for (let round = 0; round < rounds && !settled; round += 1) {
+    await new Promise((resolve) => setImmediate(resolve));
+    w.clock.advance(5000);
+    await w.monitor.runWakeChecks();
   }
+  return promise;
+}
+
+test('wake_device without waiting: the packet is sent, no output', async (t) => {
+  const w = await world(t, { '192.0.2.20': { reachable: false } });
+  const ack = await w.fake.sceneAction('wake_device', { device: w.device.external_id });
+  assert.deepEqual(ack, { success: true, data: { outputs: {} } });
+  assert.equal(wakes(w).length, 1);
 });
 
-test('motion_detected data only carries keys the trigger declares', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-  } finally {
-    stopPush();
-  }
-  const [{ data }] = gladys.fake.sceneEvents;
-  const trigger = declarationOf('scene_triggers', MOTION_DETECTED_TRIGGER);
-  // The core keeps the `fields` keys (filters) and the `variables` keys
-  // (exposed to the scene): any other key would be silently dropped.
-  const declared = [...keysOf(trigger.fields), ...keysOf(trigger.variables)];
-  for (const [key, value] of Object.entries(data)) {
-    assert.ok(declared.includes(key), `data.${key} is not declared, the core would drop it`);
-    assert.ok(value === null || typeof value !== 'object', `data.${key} must be a primitive`);
-  }
-  // A `"source": "devices"` filter stores a device external_id.
-  assert.equal(data.device, deviceIdOf(gladys, 'motion-sensor'));
-  const targets = trigger.fields.find((field) => field.key === 'target').options;
-  assert.ok(
-    targets.some((option) => option.value === data.target),
-    `data.target "${data.target}" must be one of the filter options`,
+test('wake_device waiting: online with the start-up time once it answers', async (t) => {
+  const w = await world(t, { '192.0.2.20': { reachable: false } });
+  const pending = w.fake.sceneAction('wake_device', { device: w.device.external_id, wait: true });
+  const result = drive(w, pending);
+  await new Promise((resolve) => setImmediate(resolve));
+  w.clock.advance(15_000);
+  w.network.hosts['192.0.2.20'].reachable = true;
+  const ack = await result;
+  assert.equal(ack.success, true);
+  assert.equal(ack.data.outputs.online, 1);
+  assert.ok(ack.data.outputs.boot_seconds >= 15 && ack.data.outputs.boot_seconds <= 30);
+});
+
+test('wake_device waiting on a host already up: nothing sent', async (t) => {
+  const w = await world(t, { '192.0.2.20': { reachable: true } });
+  const ack = await w.fake.sceneAction('wake_device', { device: w.device.external_id, wait: true });
+  assert.deepEqual(ack.data.outputs, { online: 1, boot_seconds: 0 });
+  assert.deepEqual(wakes(w), []);
+});
+
+test('wake_device waiting gives up at 100 s (the core waits 120 s for an action)', async (t) => {
+  const w = await world(t, { '192.0.2.20': { reachable: false } }, { wake_timeout: '600' });
+  const start = w.clock.now();
+  const ack = await drive(
+    w,
+    w.fake.sceneAction('wake_device', { device: w.device.external_id, wait: true }),
   );
+  assert.deepEqual(ack.data.outputs, { online: 0 });
+  const waited = (w.clock.now() - start) / 1000;
+  assert.ok(waited >= WAIT_CAP_SECONDS && waited < WAIT_CAP_SECONDS + 10, `${waited} s`);
+  // The follow-up goes on until the wake timeout: no wake_failed yet.
+  assert.deepEqual(w.fake.sceneEvents, []);
 });
 
-test('identify_device signals the chosen device and returns the declared outputs', async () => {
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'light') },
-    config,
-  });
-  assert.deepEqual(outputs, { signalled: true });
-  const declared = keysOf(declarationOf('scene_actions', 'identify_device').outputs);
-  for (const key of Object.keys(outputs)) {
-    assert.ok(declared.includes(key), `output "${key}" is not declared, the core would drop it`);
-  }
+test('wake_device on a device of another integration fails', async (t) => {
+  const w = await world(t, {});
+  const ack = await w.fake.sceneAction('wake_device', { device: 'ext:other:light:1' });
+  assert.equal(ack.success, false);
+  assert.match(ack.error, /not a host/);
 });
 
-test('identify_device reports a device that cannot signal itself through its output', async () => {
-  // Not a failure: a scene action is never a condition, the scene author
-  // gates the following actions on the output instead.
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'weather-station') },
-    config,
+test('check_address: 1 with the latency, or 0', async (t) => {
+  const w = await world(t, {
+    '192.0.2.50': { reachable: true, latency: 12.5 },
+    '192.0.2.51': { reachable: true, latency: 3, tcpOnly: true },
   });
-  assert.deepEqual(outputs, { signalled: false });
+  const up = await w.fake.sceneAction('check_address', { address: '192.0.2.50' });
+  assert.deepEqual(up.data.outputs, { reachable: 1, latency_ms: 12.5 });
+  const down = await w.fake.sceneAction('check_address', { address: '192.0.2.99' });
+  assert.deepEqual(down.data.outputs, { reachable: 0 });
+  await w.fake.sceneAction('check_address', { address: '192.0.2.51', port: 443 });
+  assert.deepEqual(w.network.probes.at(-1), { address: '192.0.2.51', method: 'tcp', port: 443 });
+  const invalid = await w.fake.sceneAction('check_address', { address: 'not an address' });
+  assert.equal(invalid.success, false);
 });

@@ -30,6 +30,21 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration handles:
+
+- **Stored in `/data`** (`/data/hosts.json`): the list of hosts the user added
+  or created from the network search — name, address, MAC address, broadcast
+  address, check method, port and offline delay. No secret, no account, no
+  token: the integration needs none.
+- **Network**: from its container, ICMP echo requests (through `iputils`
+  ping and the unprivileged ICMP sockets of Docker) and TCP connection
+  attempts, only towards the addresses the user entered or created; HTTP GET
+  of the UPnP description of a device found by the network search, only when
+  the device serves it from its own address. Wake-on-LAN packets and the SSDP
+  search are sent by the Gladys core on the integration's behalf (manifest
+  `network_wake` and `network_discovery`), with the core's own limits. Nothing
+  leaves the local network unless the user enters an outside address.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and the devices the integration checks or wakes up.

@@ -1,0 +1,2 @@
+iputils-ping: socktype: SOCK_RAW
+iputils-ping: socket: Operation not permitted
