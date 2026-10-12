@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-12
+
 ### Added
 
 - One Gladys device per watched host (computer, NAS, TV, phone, server):
@@ -39,3 +41,6 @@ the notes of the version's GitHub Release.
 - Texts and documentation in English, French, German and Spanish; feature
   names in French by default (setting **Language of the feature names**).
 - Apache-2.0 `LICENSE` file.
+
+[Unreleased]: https://github.com/guim31/gladys-ping-wol/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-ping-wol/releases/tag/v1.0.0
