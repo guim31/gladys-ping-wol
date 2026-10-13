@@ -177,6 +177,7 @@ Ergebnis, **=**, und tippe `1`.
   verweigert.
 - **„Kein aktueller Wert“ an einem Gerät**: Die Integration ist vielleicht gestoppt; sieh dir ihre
   Protokolle im Tab **Überwachung** an.
+- **Protokolle**: auf der Seite der Integration in Gladys oder mit `docker logs` auf dem Host. Dort stehen nur der Start, ein Host, der offline geht oder zurückkommt, jedes Wake-on-LAN, und ein Problem einmal zu Beginn und einmal an seinem Ende. `LOG_LEVEL=debug` zeigt jede Prüfung.
 
 ## Grenzen
 

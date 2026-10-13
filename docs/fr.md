@@ -181,6 +181,9 @@ choisissez le résultat, **=**, et tapez `1`.
   l'accès SSDP.
 - **« Pas de valeur récente » sur un appareil** : l'intégration est peut-être arrêtée ; regardez
   ses logs dans l'onglet **Supervision**.
+- **Logs** : dans la page de l'intégration de Gladys, ou `docker logs` sur l'hôte. Ils restent
+  calmes : le démarrage, un hôte qui passe hors ligne ou revient, chaque Wake-on-LAN, et un problème
+  une fois quand il commence, une fois quand il se termine. `LOG_LEVEL=debug` montre chaque test.
 
 ## Limites
 

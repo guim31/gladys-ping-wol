@@ -19,6 +19,8 @@ export class Store {
     this.path = join(directory, FILE_NAME);
     this.pending = null;
     this.writing = null;
+    // A failing disk would fail every save: logged once, then at debug.
+    this.writeFailed = false;
   }
 
   async load() {
@@ -47,8 +49,17 @@ export class Store {
           const temporary = `${this.path}.tmp`;
           await writeFile(temporary, JSON.stringify(snapshot));
           await rename(temporary, this.path);
+          if (this.writeFailed) {
+            this.writeFailed = false;
+            logger.info(`${this.path} written again`);
+          }
         } catch (err) {
-          logger.warn(`Cannot write ${this.path}: ${err.message}`);
+          if (this.writeFailed) {
+            logger.debug(`Cannot write ${this.path}: ${err.message}`);
+          } else {
+            this.writeFailed = true;
+            logger.warn(`Cannot write ${this.path}: ${err.message}`);
+          }
         }
       });
       this.writing = this.pending;
