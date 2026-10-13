@@ -1,6 +1,6 @@
 {
   "name": "gladys-ping-wol",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Ping & Wake-on-LAN for Gladys Assistant: which hosts of the local network are up, and Wake-on-LAN for the ones that are off.",
   "type": "module",
