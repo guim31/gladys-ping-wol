@@ -47,6 +47,7 @@ gladys-assistant-integration.json manifest: name, config_schema, actions, scenes
 docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
 test/helpers/world.js             fake Gladys + simulated network + manual clock + temporary /data
+test/logs.test.js                 what reaches docker logs at info (quiet cycles, deduplicated failures)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -116,6 +117,12 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   15000, 30000, 60000). Le template publie `poll_frequency: 300` sans `should_poll` : c'est faux,
   le cœur répond 400 à la découverte. Pour une cadence hors liste, publier `should_poll: false` et
   pousser les états depuis le conteneur, en gardant un `onPoll` de repli.
+  **Piège du 5.2.0** (issue GladysAssistant/Gladys#3199 pour le correctif, #3198 pour le
+  constat) : un appareil **créé sans `should_poll`** n'est **jamais** sondé, et le reste même après
+  la correction du cœur (la valeur est stockée à la création). Ne jamais compter sur `onPoll` :
+  ici, `Monitor.schedule()` lance son propre `setInterval` (devices en `should_poll: false`) et
+  `onPoll` n'est qu'un repli. Le test « checks the hosts on its own timer, without any onPoll »
+  (`test/monitor.test.js`) le fige.
 - **`min` et `max` sont NOT NULL** dans `t_device_feature`, y compris pour `text/text` : sans eux,
   « Ajouter à Gladys » échoue en HTTP 422. Mettre 0/0, comme Zigbee2MQTT.
 - Un état publié sur une fonctionnalité **pas encore ajoutée** dans Gladys reçoit un 200 puis est
@@ -212,6 +219,17 @@ appliquée à ses 21 intégrations. `test/i18n.test.js` doit échouer sur une la
 long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store publie `docs/en.md` et `docs/fr.md` (obligatoires,
 `DOCS_LANGUAGES` d'integration-store) **et aussi `docs/de.md` et `docs/es.md` quand ils existent**
 (`DOCS_OPTIONAL_LANGUAGES`) : les quatre docs sont écrites, avec les mêmes sections (vérifié par `test/i18n.test.js`).
+
+## Logs
+
+- Niveau par la variable `LOG_LEVEL` (`debug`, `info`, `warn`, `error`, `silent`), lue par le logger
+  du SDK à chaque ligne. En info : démarrage, hôte qui passe hors ligne ou revient, hôte ajouté ou
+  retiré, chaque Wake-on-LAN. **Rien par cycle de test ni par état publié** (debug seulement).
+- Un échec qui se répète à chaque cycle passe par `Monitor.failed(key, …)` : une ligne au premier
+  échec, du debug ensuite, une ligne info au rétablissement (`Monitor.recovered(key, …)`). Même
+  logique dans `Store` pour l'écriture de `/data`. « ICMP is not allowed » n'est écrit qu'une fois
+  (`icmpDenied`). `test/logs.test.js` le vérifie (capture de `console.log`/`console.error`).
+- Jamais d'adresse MAC ni de secret dans une ligne info : le nom de l'hôte suffit.
 
 ## Pièges découverts sur cette intégration (Gladys 5.2.0, SDK 0.15.0)
 

@@ -10,6 +10,15 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Changed
+
+- Quieter logs: by default they only show the start, a host going offline or
+  coming back, each Wake-on-LAN and each host added or removed. A problem that
+  repeats (Gladys unreachable, network search refused, `/data` not writable) is
+  written once, then once more when it is over. `LOG_LEVEL=debug` shows every
+  check (see Troubleshooting).
+- Updated dependencies.
+
 ## [1.0.0] - 2026-10-12
 
 ### Added

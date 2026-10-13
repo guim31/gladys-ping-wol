@@ -348,3 +348,32 @@ test('the onPoll fallback checks the host', async (t) => {
   assert.equal(ack.success, true);
   assert.equal(world.network.probes.length, 1);
 });
+
+test('the monitor checks the hosts on its own timer, without any onPoll', async (t) => {
+  // Gladys 5.2.0 never polls a device created without should_poll (issue
+  // GladysAssistant/Gladys#3198): the checks must not depend on onPoll.
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  const world = await createWorld({
+    timers: true,
+    config: { check_interval: '30' },
+    network: createNetwork({ '192.0.2.20': { reachable: true, latency: 0.84 } }),
+  });
+  t.after(() => world.app.stop());
+  await addHost(world, PC);
+  const device = await create(world, PC.name);
+  assert.equal(device.should_poll, false);
+  const poll = t.mock.method(world.monitor, 'poll');
+  const online = featureId(device, 'online');
+  world.network.probes.length = 0;
+  world.network.hosts['192.0.2.20'].reachable = false;
+  world.clock.advance(60_000);
+  t.mock.timers.tick(30_000);
+  await world.monitor.running;
+  assert.equal(world.network.probes.length, 1, 'one check after one interval');
+  world.clock.advance(60_000);
+  t.mock.timers.tick(30_000);
+  await world.monitor.running;
+  assert.equal(world.network.probes.length, 2);
+  assert.equal(world.fake.lastState(online), 0, 'offline published from the timer');
+  assert.equal(poll.mock.callCount(), 0);
+});

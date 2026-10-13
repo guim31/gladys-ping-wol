@@ -172,6 +172,9 @@ result, **=**, and type `1`.
   message says the search is unavailable, Gladys refused the SSDP access.
 - **"No recent value" on a device**: the integration may be stopped; look at its logs in the
   **Supervision** tab.
+- **Logs**: on the integration page in Gladys, or `docker logs` on the host. They stay quiet:
+  the start, a host going offline or coming back, each Wake-on-LAN, and a problem once when it
+  starts and once when it is over. `LOG_LEVEL=debug` shows every check.
 
 ## Limits
 

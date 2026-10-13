@@ -14,6 +14,11 @@
 // moves noticeably (20 %, 1 ms at least): a LAN round trip jitters by a few
 // tenths of a millisecond at every check, which would fill the history and
 // spend the 300 states per minute of the core for nothing.
+//
+// Logs: at info, only the lifecycle (start, a host going offline or coming
+// back, one line per Wake-on-LAN). A failure that repeats at every cycle (core
+// unreachable, search refused) is logged once, then at debug until it
+// recovers, with one line at recovery. LOG_LEVEL=debug shows every cycle.
 // -----------------------------------------------------------------------------
 
 import { createLogger } from '@gladysassistant/integration-sdk';
@@ -99,6 +104,26 @@ export class Monitor {
     this.lastRefreshAt = -Infinity;
     this.refreshTimer = null;
     this.stopped = false;
+    // Keys of the failures already logged, so a repeated one is not logged again.
+    this.failing = new Set();
+  }
+
+  /** Log a failure once (warn or error), then at debug until `recovered(key)`. */
+  failed(key, level, message, err) {
+    const details = err ? [message, err] : [message];
+    if (this.failing.has(key)) {
+      logger.debug(...details);
+      return;
+    }
+    this.failing.add(key);
+    logger[level](...details);
+  }
+
+  /** One line when a failure logged by `failed(key)` is over. */
+  recovered(key, message) {
+    if (this.failing.delete(key)) {
+      logger.info(message);
+    }
   }
 
   // --- Lifecycle -------------------------------------------------------------
@@ -115,6 +140,7 @@ export class Monitor {
     this.restoreFromGladys();
     await this.publishDiscovered();
     await this.gladys.setConnectionStatus(true);
+    logger.info(`Started: ${this.hosts.size} host(s), checked every ${config.checkInterval} s`);
     this.schedule();
     this.runCycle();
   }
@@ -225,9 +251,10 @@ export class Monitor {
     try {
       results = await this.gladys.scanNetwork('ssdp', { timeoutSeconds: SCAN_TIMEOUT_SECONDS });
     } catch (err) {
-      logger.warn(`Network search unavailable: ${err.message}`);
+      this.failed('search', 'warn', `Network search unavailable: ${err.message}`);
       return null;
     }
+    this.recovered('search', 'Network search available again');
     // Only the devices not in the list yet: their description is fetched once.
     const fresh = ssdpCandidates(results).filter((candidate) => !this.isListed(candidate));
     const described = await describeCandidates(fresh, this.fetch);
@@ -271,6 +298,7 @@ export class Monitor {
     }
     await this.save();
     await this.publishDiscovered();
+    logger.info(`Host ${existing ? 'updated' : 'added'}: ${saved.name}`);
 
     const result = await this.probeHost(saved);
     this.noteIcmp(result);
@@ -303,6 +331,7 @@ export class Monitor {
     this.status.delete(host.id);
     await this.save();
     await this.publishDiscovered();
+    logger.info(`Host removed: ${host.name}`);
     this.requestRefresh();
     return join(
       render(REPORTS, 'removed', { name: host.name }),
@@ -405,7 +434,8 @@ export class Monitor {
       return this.running;
     }
     this.running = this.cycle()
-      .catch((err) => logger.error('Check cycle failed', err))
+      .then(() => this.recovered('cycle', 'Check cycles work again'))
+      .catch((err) => this.failed('cycle', 'error', 'Check cycle failed', err))
       .finally(() => {
         this.running = null;
       });
@@ -428,6 +458,7 @@ export class Monitor {
     await Promise.all(
       Array.from({ length: Math.min(this.timings.concurrency, hosts.length) }, worker),
     );
+    logger.debug(`Check cycle: ${hosts.length} host(s)`);
     await this.publishStates(hosts);
   }
 
@@ -490,6 +521,11 @@ export class Monitor {
       }
     }
     if (status.online !== wasOnline) {
+      if (wasOnline === null) {
+        logger.debug(`${host.name} is ${status.online ? 'online' : 'offline'}`);
+      } else {
+        logger.info(`${host.name} is ${status.online ? 'back online' : 'offline'}`);
+      }
       this.requestRefresh();
     }
     return status;
@@ -516,9 +552,10 @@ export class Monitor {
     }
     try {
       await this.gladys.publishChangedStates(states, { heartbeat: this.timings.heartbeatMs });
+      this.recovered('publish', 'Publishing the states works again');
     } catch (err) {
       // Sent again at the next cycle (the SDK forgets what Gladys refused).
-      logger.warn(`Publishing the states failed: ${err.message}`);
+      this.failed('publish', 'warn', `Publishing the states failed: ${err.message}`);
     }
   }
 
@@ -572,6 +609,7 @@ export class Monitor {
     }
     const status = this.statusOf(host.id);
     await this.sendMagicPacket(host);
+    logger.info(`Wake-on-LAN sent to ${host.name}`);
     const now = this.now();
     if (!status.waking) {
       status.waking = {
@@ -625,8 +663,13 @@ export class Monitor {
         this.finishWake(host, status, false);
       } else if (now >= waking.resendAt) {
         waking.resendAt = now + this.timings.wakeResendMs;
-        await this.sendMagicPacket(host).catch((err) =>
-          logger.warn(`Wake-on-LAN of ${host.name} failed: ${err.message}`),
+        const key = `wake:${host.id}`;
+        await this.sendMagicPacket(host).then(
+          () => {
+            logger.debug(`Wake-on-LAN sent again to ${host.name}`);
+            this.recovered(key, `Wake-on-LAN of ${host.name} sent again`);
+          },
+          (err) => this.failed(key, 'warn', `Wake-on-LAN of ${host.name} failed: ${err.message}`),
         );
       }
     }

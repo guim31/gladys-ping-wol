@@ -179,6 +179,9 @@ resultado, **=**, y escriba `1`.
   mano. Si el mensaje dice que la búsqueda no está disponible, Gladys rechazó el acceso SSDP.
 - **«Sin valor reciente» en un dispositivo**: puede que la integración esté detenida; consulte sus
   registros en la pestaña **Supervisión**.
+- **Registros**: en la página de la integración en Gladys, o `docker logs` en el host. Son
+  discretos: el arranque, un equipo que se desconecta o vuelve, cada Wake-on-LAN, y un problema una
+  vez cuando empieza y otra cuando termina. `LOG_LEVEL=debug` muestra cada comprobación.
 
 ## Límites
 

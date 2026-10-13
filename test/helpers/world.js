@@ -93,6 +93,7 @@ export function createClock(start = 1_700_000_000_000) {
  * @param {object} [options.saved] content of /data/hosts.json before the start
  * @param {Array|null} [options.ssdp] raw SSDP results, null: no capture declared
  * @param {boolean} [options.connect]
+ * @param {boolean} [options.timers] true: the monitor's own timers run (mock them)
  */
 export async function createWorld({
   config = {},
@@ -101,6 +102,7 @@ export async function createWorld({
   saved,
   ssdp = SSDP_RESULTS,
   connect = true,
+  timers = false,
   dataDir = mkdtempSync(join(tmpdir(), 'gladys-ping-wol-')),
 } = {}) {
   const gladys = createFakeGladys({
@@ -118,7 +120,7 @@ export async function createWorld({
     store,
     probe: network.probe,
     fetch: network.fetch,
-    timers: false,
+    timers,
     now: clock.now,
     sleep: clock.sleep,
   });
@@ -150,6 +152,27 @@ export async function create(world, name) {
 /** External id of one feature of a device. */
 export const featureId = (device, key) =>
   device.features.find((feature) => feature.external_id.endsWith(`:${key}`))?.external_id;
+
+/**
+ * Capture the integration's log lines at `level` and above (LOG_LEVEL is read
+ * at every call). Returns the lines as `{ level, text }`.
+ */
+export function captureLogs(t, level = 'info') {
+  const previous = process.env.LOG_LEVEL;
+  process.env.LOG_LEVEL = level;
+  const lines = [];
+  const record = (...args) => {
+    const text = args.map((arg) => (arg instanceof Error ? arg.message : String(arg))).join(' ');
+    const match = /^\[[^\]]+\] \[(\w+)\]/.exec(text);
+    lines.push({ level: match ? match[1].toLowerCase() : 'raw', text });
+  };
+  t.mock.method(console, 'log', record);
+  t.mock.method(console, 'error', record);
+  t.after(() => {
+    process.env.LOG_LEVEL = previous;
+  });
+  return lines;
+}
 
 /** Wake-on-LAN requests the core received. */
 export const wakes = (world) =>
